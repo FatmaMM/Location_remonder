@@ -1,12 +1,17 @@
 package com.udacity.project4.locationreminders.reminderslist
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.*
+import android.widget.Toast
 import androidx.databinding.DataBindingUtil
+import com.firebase.ui.auth.AuthUI
 import com.udacity.project4.R
+import com.udacity.project4.authentication.AuthenticationActivity
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
 import com.udacity.project4.databinding.FragmentRemindersBinding
+import com.udacity.project4.locationreminders.ReminderDescriptionActivity
 import com.udacity.project4.utils.setDisplayHomeAsUpEnabled
 import com.udacity.project4.utils.setTitle
 import com.udacity.project4.utils.setup
@@ -25,8 +30,8 @@ class ReminderListFragment : BaseFragment() {
                 inflater,
                 R.layout.fragment_reminders, container, false
             )
+        binding.lifecycleOwner = this
         binding.viewModel = _viewModel
-
         setHasOptionsMenu(true)
         setDisplayHomeAsUpEnabled(false)
         setTitle(getString(R.string.app_name))
@@ -62,16 +67,38 @@ class ReminderListFragment : BaseFragment() {
 
     private fun setupRecyclerView() {
         val adapter = RemindersListAdapter {
+            navigateToDetails(it)
         }
 
 //        setup the recycler view using the extension function
         binding.reminderssRecyclerView.setup(adapter)
     }
 
+    private fun navigateToDetails(reminderDataItem: ReminderDataItem) {
+        var intent = ReminderDescriptionActivity.newIntent(this.requireActivity(), reminderDataItem)
+        startActivity(intent)
+    }
+
+    private fun navigateToAuth() {
+        var intent = Intent(this.requireActivity(), AuthenticationActivity::class.java)
+        startActivity(intent)
+    }
+
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.logout -> {
-//                TODO: add the logout implementation
+                AuthUI.getInstance().signOut(requireContext())
+                    .addOnCompleteListener {
+                        if (it.isSuccessful) {
+                            navigateToAuth()
+                        } else {
+                            Toast.makeText(
+                                this@ReminderListFragment.context,
+                                "Log out error",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
             }
         }
         return super.onOptionsItemSelected(item)

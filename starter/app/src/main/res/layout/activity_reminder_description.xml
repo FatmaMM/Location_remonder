@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <data>
-        <!--Data item that holds the reminder details-->
+
         <variable
             name="reminderDataItem"
             type="com.udacity.project4.locationreminders.reminderslist.ReminderDataItem" />
@@ -16,18 +16,101 @@
         android:gravity="center"
         android:orientation="vertical"
         tools:context=".locationreminders.ReminderDescriptionActivity">
-        <!--TODO: add the design of the reminder details-->
 
-        <TextView
+        <ScrollView
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:text="Reminder Details"
-            android:textSize="@dimen/text_size_large"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            android:layout_height="match_parent"
+            android:fillViewport="true">
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/margin_normal">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/reminder_title"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/text_size_large"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_small"
+                    android:text="@{reminderDataItem.title}"
+                    android:textSize="@dimen/text_size_normal"
+                    tools:text="title" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_normal"
+                    android:text="@string/reminder_desc"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/text_size_large"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_small"
+                    android:text='@{reminderDataItem.description ?? "No description set"}'
+                    android:textSize="@dimen/text_size_normal"
+                    tools:text="description" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_normal"
+                    android:text="@string/reminder_location"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/text_size_large"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_small"
+                    android:text="@{reminderDataItem.location}"
+                    android:textSize="@dimen/text_size_normal" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_small"
+                    android:text="@string/latitude"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/text_size_large"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_small"
+                    android:text="@{reminderDataItem.latitude.toString()}"
+                    android:textSize="@dimen/text_size_normal" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_small"
+                    android:text="@string/longitude"
+                    android:textStyle="bold"
+                    android:textColor="@color/black"
+                    android:textSize="@dimen/text_size_large"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/padding_small"
+                    android:text="@{reminderDataItem.longitude.toString()}"
+                    android:textSize="@dimen/text_size_normal" />
+
+            </LinearLayout>
+
+        </ScrollView>
     </LinearLayout>
 </layout>

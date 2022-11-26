@@ -15,9 +15,15 @@ import android.content.Intent
  */
 
 class GeofenceBroadcastReceiver : BroadcastReceiver() {
+    companion object {
+        const val GEOFENCE_EVENT = "GEOFENCE_EVENT"
+        const val GEOFENCE_RADIUS_IN_METERS = 110.0
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
 
-//TODO: implement the onReceive method to receive the geofencing events at the background
-
+        if (intent.action == GEOFENCE_EVENT) {
+            GeofenceTransitionsJobIntentService.enqueueWork(context, intent)
+        }
     }
 }
