@@ -1,9 +1,14 @@
 package com.udacity.project4.utils
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.content.IntentSender
 import android.location.Location
 import android.location.LocationManager
+import android.widget.Toast
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.CancellationToken
 import com.google.android.gms.tasks.CancellationTokenSource
@@ -29,10 +34,6 @@ class LocationHelperManger(private val activity: Context, val locationManager: M
     }
 
     private fun createLocationRequest() {
-        var mLocationManager = activity.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        var isGPSEnabled = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
-        locationManager.hasGPSSignal(isGPSEnabled)
-
         locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, INTERVAL)
             .setWaitForAccurateLocation(false)
             .setMinUpdateIntervalMillis(FAST_INTERVAL)
@@ -40,18 +41,57 @@ class LocationHelperManger(private val activity: Context, val locationManager: M
             .build()
     }
 
+    private fun enableGPS() {
+        val settingsBuilder = LocationSettingsRequest.Builder()
+            .addLocationRequest(locationRequest!!)
+        settingsBuilder.setAlwaysShow(true)
+        val result =
+            LocationServices.getSettingsClient(activity)
+                .checkLocationSettings(settingsBuilder.build())
+        result.addOnCompleteListener { task ->
+            try {
+                task.getResult(ApiException::class.java)
+            } catch (ex: ApiException) {
+
+                when (ex.statusCode) {
+                    LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> try {
+
+                        Toast.makeText(activity, "GPS IS OFF", Toast.LENGTH_SHORT).show()
+
+                        // Show the dialog by calling startResolutionForResult(), and check the result
+                        // in onActivityResult().
+                        val resolvableApiException = ex as ResolvableApiException
+                        resolvableApiException.startResolutionForResult(
+                            activity as Activity,
+                            PermissionHelperManager.LOCATION_PERMISSIONS_REQUEST_CODE
+                        )
+                    } catch (e: IntentSender.SendIntentException) {
+                        Toast.makeText(
+                            activity,
+                            "PendingIntent unable to execute request.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                    }
+                    LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE -> {
+                        Toast.makeText(
+                            activity,
+                            "Something is wrong in your GPS",
+                            Toast.LENGTH_SHORT
+                        ).show()
+
+                    }
+                }
+            }
+        }
+    }
 
     private fun createLocationCallBack() {
         if (locationCallback == null) {
             locationCallback = object : LocationCallback() {
                 override fun onLocationResult(locationResult: LocationResult) {
                     super.onLocationResult(locationResult)
-                    for (location in locationResult.locations) {
-                        if (location != null) {
-                            locationManager.onLocationChanged(location)
-                            locationManager.hasGPSSignal(true)
-                        }
-                    }
+                    locationManager.onLocationChanged(locationResult.lastLocation)
                 }
             }
         }
@@ -59,12 +99,17 @@ class LocationHelperManger(private val activity: Context, val locationManager: M
 
     @SuppressLint("MissingPermission")
     fun startLocationUpdates() {
-        fusedLocationClient!!.requestLocationUpdates(locationRequest!!, locationCallback!!, null)
+        enableGPS()
+        fusedLocationClient!!.requestLocationUpdates(
+            locationRequest!!,
+            locationCallback!!,
+            null
+        )
         getLastKnownLocation()
     }
 
     @SuppressLint("MissingPermission")
-     fun getLastKnownLocation() {
+    fun getLastKnownLocation() {
         if (fusedLocationClient == null) {
             fusedLocationClient = LocationServices.getFusedLocationProviderClient(this.activity)
 
@@ -72,7 +117,6 @@ class LocationHelperManger(private val activity: Context, val locationManager: M
         fusedLocationClient!!.lastLocation.addOnSuccessListener { location ->
             if (location != null) {
                 locationManager.getLastKnownLocation(location)
-                locationManager.hasGPSSignal(true)
             }
         }
     }

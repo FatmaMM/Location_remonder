@@ -43,9 +43,9 @@ class MyApp : Application() {
             }
             single { RemindersLocalRepository(get()) as ReminderDataSource }
             single { LocalDB.createRemindersDao(this@MyApp) }
-            single { (locationManger: MLocationHelper) ->
+            single { (context: Context, locationManger: MLocationHelper) ->
                 LocationHelperManger(
-                    activity = androidContext(),
+                    activity = context,
                     locationManager = locationManger
                 )
             }

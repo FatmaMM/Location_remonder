@@ -14,7 +14,8 @@ class FakeDataSource : ReminderDataSource {
     fun setError(value: Boolean) {
         this.error = value
     }
-     fun saveOneReminder(reminder: ReminderDTO) {
+
+    fun saveOneReminder(reminder: ReminderDTO) {
         remindersData.put(reminder.id, reminder)
     }
 
@@ -30,10 +31,14 @@ class FakeDataSource : ReminderDataSource {
     }
 
     override suspend fun getReminder(id: String): Result<ReminderDTO> {
-        remindersData[id]?.let {
-            return Result.Success(it)
-        } ?: run {
-            return Result.Error("Could not find Reminder")
+        if (!error) {
+            remindersData[id]?.let {
+                return Result.Success(it)
+            } ?: run {
+                return Result.Error("Could not find Reminder")
+            }
+        } else {
+            return Result.Error("Error getting data")
         }
     }
 

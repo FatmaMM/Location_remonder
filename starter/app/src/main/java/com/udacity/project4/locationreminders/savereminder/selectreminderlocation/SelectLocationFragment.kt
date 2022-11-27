@@ -27,38 +27,29 @@ import com.udacity.project4.utils.*
 import org.koin.android.ext.android.inject
 import org.koin.core.parameter.parametersOf
 
-class SelectLocationFragment : BaseFragment(), OnMapReadyCallback, MLocationHelper,
-    PermissionHelper {
+class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,  GoogleMap.OnMyLocationClickListener,
+    GoogleMap.OnMyLocationButtonClickListener {
 
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSelectLocationBinding
     private lateinit var googleMap: GoogleMap
     private var marker: Marker? = null
 
-    lateinit var snackBar: Snackbar
-
-    private val locationHelper: LocationHelperManger by inject { parametersOf(this) }
-    private val permissionManager: PermissionHelperManager by inject {
-        parametersOf(
-            this@SelectLocationFragment.requireActivity(), this
-        )
-    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
         binding =
             DataBindingUtil.inflate(inflater, R.layout.fragment_select_location, container, false)
-
         binding.viewModel = _viewModel
         binding.lifecycleOwner = this
-
         setHasOptionsMenu(true)
         setDisplayHomeAsUpEnabled(true)
 
         val mapFragment =
             childFragmentManager.findFragmentById(R.id.google_map) as SupportMapFragment
         mapFragment.getMapAsync(this)
+
         binding.saveBtn.setOnClickListener {
             if (marker == null) {
                 Toast.makeText(
@@ -73,12 +64,13 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback, MLocationHelp
         return binding.root
     }
 
+    @SuppressLint("MissingPermission")
     override fun onResume() {
         super.onResume()
-        permissionManager.requestLocationPermission()
-        locationHelper.startLocationUpdates()
+        if (permissionManager.areAllPermissionsGranted()){
+            locationHelper.startLocationUpdates()
+        }
     }
-
     private fun onLocationSelected() {
         onPOIClicked()
         onMapClicked()
@@ -91,12 +83,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback, MLocationHelp
 
             val locationSnippet = it.name
             _viewModel.updateClickedPoint(it.latLng, locationSnippet, it)
-
-            if (permissionManager.areAllPermissionsGranted()) {
-                googleMap.uiSettings.isMyLocationButtonEnabled = true
-                googleMap.uiSettings.isZoomControlsEnabled = true
-            }
-
             marker = googleMap.addMarker(
                 MarkerOptions().position(it.latLng).title(it.name).snippet(locationSnippet)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN))
@@ -155,17 +141,16 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback, MLocationHelp
     @SuppressLint("MissingPermission")
     override fun onMapReady(p0: GoogleMap) {
         googleMap = p0
-        if (permissionManager.areAllPermissionsGranted()) {
-            googleMap.uiSettings.isZoomControlsEnabled = true
+        permissionManager.requestLocationPermission()
+        googleMap.uiSettings.isZoomControlsEnabled = true
+        googleMap.uiSettings.isMyLocationButtonEnabled = true
+        googleMap.setOnMyLocationButtonClickListener(this)
+        googleMap.setOnMyLocationClickListener(this)
+        if (permissionManager.areAllPermissionsGranted())
             googleMap.isMyLocationEnabled = true
-            googleMap.uiSettings.isMyLocationButtonEnabled = true
-        }
+
         initMapUI()
         onLocationSelected()
-        googleMap.setOnMyLocationButtonClickListener {
-            locationHelper.getLastKnownLocation()
-            true
-        }
     }
 
 
@@ -204,8 +189,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback, MLocationHelp
             googleMap.moveCamera(
                 CameraUpdateFactory.newLatLngZoom(latLng, 15.0f)
             )
-        } else if (permissionManager.areAllPermissionsGranted()) {
-            locationHelper.startLocationUpdates()
         }
     }
 
@@ -214,42 +197,21 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback, MLocationHelp
         locationHelper.stopLocationUpdates()
     }
 
-    override fun locationPermissionAccepted() {
+    override fun startLocationRequest() {
         locationHelper.startLocationUpdates()
-    }
-
-    override fun locationPermissionDenied() {
-        hasGPSSignal(false)
-    }
-
-    override fun hasGPSSignal(isGPSEnabled: Boolean) {
-        if (!this::snackBar.isInitialized) {
-            snackBar = Snackbar.make(
-                binding.root, getString(R.string.gps_request_message), Snackbar.LENGTH_INDEFINITE
-            )
-            snackBar.setAction(getString(R.string.yes)) {
-                startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
-                snackBar.dismiss()
-            }
-            snackBar.setActionTextColor(
-                ContextCompat.getColor(
-                    this.requireContext(),
-                    R.color.colorAccent
-                )
-            )
-        }
-
-        if (!isGPSEnabled) snackBar.show()
-        else snackBar.dismiss()
     }
 
     override fun onLocationChanged(location: Location?) {
         location?.let {
-            googleMap.moveCamera(
-                CameraUpdateFactory.newLatLngZoom(LatLng(it.latitude, it.longitude), 15.0f)
+            googleMap.setPadding(0, 0, 0, 200)
+            googleMap.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(
+                    LatLng(it.latitude, it.longitude), 15.0f
+                )
             )
         }
     }
+
 
     override fun getLastKnownLocation(location: Location?) {
         location?.let {
@@ -261,5 +223,23 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback, MLocationHelp
             )
         }
     }
+
+    override fun onMyLocationClick(p0: Location) {
+        googleMap.setPadding(0, 0, 0, 200)
+        googleMap.moveCamera(
+            CameraUpdateFactory.newLatLngZoom(
+                LatLng(p0.latitude, p0.longitude), 19.0f
+            )
+        )
+
+        addCircle(LatLng(p0.latitude, p0.longitude))
+    }
+
+    override fun onMyLocationButtonClick(): Boolean {
+        Toast.makeText(this.requireContext(), "MyLocation button clicked", Toast.LENGTH_SHORT)
+            .show()
+        return false
+    }
+
 
 }

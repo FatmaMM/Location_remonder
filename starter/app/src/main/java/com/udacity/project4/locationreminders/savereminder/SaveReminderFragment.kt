@@ -1,20 +1,15 @@
 package com.udacity.project4.locationreminders.savereminder
 
-import android.Manifest
 import android.annotation.SuppressLint
-import android.app.Activity
-import android.app.AlertDialog
 import android.app.PendingIntent
 import android.content.Intent
-import android.content.pm.PackageManager
+import android.location.Location
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
 import androidx.navigation.fragment.navArgs
 import com.google.android.gms.location.Geofence
@@ -65,6 +60,15 @@ class SaveReminderFragment : BaseFragment() {
         geofenceClient = LocationServices.getGeofencingClient(requireContext())
 
         return binding.root
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (!permissionManager.areAllPermissionsGranted()) {
+            permissionManager.requestLocationPermission()
+        } else {
+            locationHelper.startLocationUpdates()
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -143,6 +147,8 @@ class SaveReminderFragment : BaseFragment() {
         //make sure to clear the view model after destroy, as it's a single view model.
         _viewModel.onClear()
     }
+
+
 
     private fun initData() {
         args.reminderData?.let {

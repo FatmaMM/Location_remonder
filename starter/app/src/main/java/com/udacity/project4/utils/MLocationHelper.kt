@@ -7,5 +7,4 @@ interface MLocationHelper {
 
     fun getLastKnownLocation(location: Location?)
 
-    fun hasGPSSignal(isGPSEnabled:Boolean)
 }

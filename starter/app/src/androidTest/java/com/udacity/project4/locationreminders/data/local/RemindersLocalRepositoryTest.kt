@@ -77,6 +77,13 @@ class RemindersLocalRepositoryTest {
     }
 
     @Test
+    fun getFromRepoWithError() = runBlocking {
+        val reminderError = repo.getReminder(23.toString()) as Result.Error
+        Assert.assertNotNull(reminderError)
+        Assert.assertEquals(reminderError.message, "Reminder not found!")
+    }
+
+    @Test
     fun deleteDataFromRepo() = runBlocking {
         repo.deleteAllReminders()
         val reminder = repo.getReminders() as Result.Success

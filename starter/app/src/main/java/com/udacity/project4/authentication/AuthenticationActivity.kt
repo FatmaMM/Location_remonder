@@ -36,6 +36,7 @@ class AuthenticationActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         auth.currentUser?.let {
             navigateToRemindersActivity()
         } ?: run {
@@ -59,6 +60,7 @@ class AuthenticationActivity : AppCompatActivity() {
         } else {
             idpResponse?.let {
                 Toast.makeText(applicationContext, "log in unsuccessful", Toast.LENGTH_SHORT).show()
+                navigateToRemindersActivity()
             } ?: run {
                 Toast.makeText(
                     applicationContext,
@@ -68,6 +70,5 @@ class AuthenticationActivity : AppCompatActivity() {
             }
         }
     }
-
 
 }
