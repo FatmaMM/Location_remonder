@@ -1,6 +1,5 @@
 package com.udacity.project4
 
-import android.app.Activity
 import android.app.Application
 import android.content.Context
 import com.udacity.project4.locationreminders.data.ReminderDataSource
@@ -11,7 +10,6 @@ import com.udacity.project4.locationreminders.savereminder.SaveReminderViewModel
 import com.udacity.project4.utils.LocationHelperManger
 import com.udacity.project4.utils.MLocationHelper
 import com.udacity.project4.utils.PermissionHelper
-import com.udacity.project4.utils.PermissionHelperManager
 import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
@@ -47,12 +45,6 @@ class MyApp : Application() {
                 LocationHelperManger(
                     activity = context,
                     locationManager = locationManger
-                )
-            }
-            single { (context: Context, mPermissionHelper: PermissionHelper) ->
-                PermissionHelperManager(
-                    activity = context,
-                    mPermissionHelper = mPermissionHelper
                 )
             }
         }

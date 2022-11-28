@@ -41,13 +41,10 @@ class LocationHelperManger(private val activity: Context, val locationManager: M
             .build()
     }
 
-    private fun enableGPS() {
-        val settingsBuilder = LocationSettingsRequest.Builder()
-            .addLocationRequest(locationRequest!!)
+     fun enableGPS() {
+        val settingsBuilder = LocationSettingsRequest.Builder().addLocationRequest(locationRequest!!)
         settingsBuilder.setAlwaysShow(true)
-        val result =
-            LocationServices.getSettingsClient(activity)
-                .checkLocationSettings(settingsBuilder.build())
+        val result = LocationServices.getSettingsClient(activity).checkLocationSettings(settingsBuilder.build())
         result.addOnCompleteListener { task ->
             try {
                 task.getResult(ApiException::class.java)
@@ -63,7 +60,7 @@ class LocationHelperManger(private val activity: Context, val locationManager: M
                         val resolvableApiException = ex as ResolvableApiException
                         resolvableApiException.startResolutionForResult(
                             activity as Activity,
-                            PermissionHelperManager.LOCATION_PERMISSIONS_REQUEST_CODE
+                            123
                         )
                     } catch (e: IntentSender.SendIntentException) {
                         Toast.makeText(
@@ -99,7 +96,6 @@ class LocationHelperManger(private val activity: Context, val locationManager: M
 
     @SuppressLint("MissingPermission")
     fun startLocationUpdates() {
-        enableGPS()
         fusedLocationClient!!.requestLocationUpdates(
             locationRequest!!,
             locationCallback!!,

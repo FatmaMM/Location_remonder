@@ -77,16 +77,10 @@ class RemindersActivityTest : AutoCloseKoinTest() {
 
             single<ReminderDataSource> { RemindersLocalRepository(get()) }
             single { LocalDB.createRemindersDao(getApplicationContext()) }
-            single { (locationManger: MLocationHelper) ->
+            single { (context: Context,locationManger: MLocationHelper) ->
                 LocationHelperManger(
-                    activity = getApplicationContext(),
+                    activity = context,
                     locationManager = locationManger
-                )
-            }
-            single { (context: Context, mPermissionHelper: PermissionHelper) ->
-                PermissionHelperManager(
-                    activity = getApplicationContext(),
-                    mPermissionHelper = mPermissionHelper
                 )
             }
         }
