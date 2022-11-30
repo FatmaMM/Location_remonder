@@ -40,6 +40,7 @@
     <string name="geofence_too_many_geofences">Your app has registered too many geofences.</string>
     <string name="geofence_too_many_pending_intents">You have provided too many PendingIntents to the addGeofences() call.</string>
     <string name="error_adding_geofence">Error Happened, Can\'t Add Geofence</string>
+    <string name="null_location">Error Happened, Your current location is null please enable your gps to display your current location</string>
     <string name="gps_request_message">For better experience enable your location</string>
     <string name="yes">Enable</string>
     <string name="latitude">latitude</string>

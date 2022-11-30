@@ -59,7 +59,7 @@ class AuthenticationActivity : AppCompatActivity() {
             navigateToRemindersActivity()
         } else {
             idpResponse?.let {
-                Toast.makeText(applicationContext, "log in unsuccessful", Toast.LENGTH_SHORT).show()
+                Toast.makeText(applicationContext, "log in successfully", Toast.LENGTH_SHORT).show()
                 navigateToRemindersActivity()
             } ?: run {
                 Toast.makeText(

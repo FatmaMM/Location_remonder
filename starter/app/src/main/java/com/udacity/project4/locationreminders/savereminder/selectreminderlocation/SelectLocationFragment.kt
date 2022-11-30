@@ -4,20 +4,34 @@ package com.udacity.project4.locationreminders.savereminder.selectreminderlocati
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
+import android.content.IntentSender
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.location.Location
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.*
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
 import androidx.databinding.DataBindingUtil
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.ResolvableApiException
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.LocationSettingsRequest
+import com.google.android.gms.location.LocationSettingsStatusCodes
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.*
 import com.google.android.material.snackbar.Snackbar
+import com.udacity.project4.BuildConfig
 import com.udacity.project4.R
 import com.udacity.project4.base.BaseFragment
 import com.udacity.project4.base.NavigationCommand
@@ -30,7 +44,7 @@ import org.koin.core.parameter.parametersOf
 
 class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
     GoogleMap.OnMyLocationClickListener,
-    GoogleMap.OnMyLocationButtonClickListener, MLocationHelper, PermissionHelper {
+    GoogleMap.OnMyLocationButtonClickListener, MLocationHelper {
 
     override val _viewModel: SaveReminderViewModel by inject()
     private lateinit var binding: FragmentSelectLocationBinding
@@ -47,18 +61,25 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
         Manifest.permission.ACCESS_FINE_LOCATION
     )
 
-    private var activityResultLauncher: ActivityResultLauncher<Array<String>> =
+    @SuppressLint("MissingPermission")
+    private var activityResultLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             var allAreGranted = true
             for (b in result.values) {
                 allAreGranted = allAreGranted && b
             }
             if (allAreGranted) {
-                startLocationRequest()
+                googleMap.isMyLocationEnabled = true
+                googleMap.uiSettings.isMyLocationButtonEnabled = true
+                googleMap.uiSettings.isZoomControlsEnabled = true
+                googleMap.setOnMyLocationButtonClickListener(this)
+                googleMap.setOnMyLocationClickListener(this)
+                locationHelper.checkDeviceLocationSettingsAndStartGeofence()
             } else {
-                locationPermissionDenied()
+                showSnackBar()
             }
         }
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
@@ -86,11 +107,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
             }
         }
         return binding.root
-    }
-
-    private fun onLocationSelected() {
-        onPOIClicked()
-        onMapClicked()
     }
 
     private fun onPOIClicked() {
@@ -130,7 +146,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
         }
     }
 
-
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.map_options, menu)
     }
@@ -159,8 +174,10 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
     override fun onMapReady(p0: GoogleMap) {
         googleMap = p0
         activityResultLauncher.launch(PERMISSIONS)
+
         initMapUI()
-        onLocationSelected()
+        onPOIClicked()
+        onMapClicked()
     }
 
 
@@ -176,10 +193,23 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
         googleMap.addCircle(circleOptions)
     }
 
+    @SuppressLint("MissingPermission")
     private fun initMapUI() {
-        val lat = _viewModel.latitude.value
-        val long = _viewModel.longitude.value
-        val locationSnippet = _viewModel.reminderSelectedLocationStr.value
+        _viewModel.locationAccepted.observe(viewLifecycleOwner) {
+            val lat = _viewModel.latitude.value
+            val long = _viewModel.longitude.value
+            val locationSnippet = _viewModel.reminderSelectedLocationStr.value
+            if (lat != null && long != null && locationSnippet != null) {
+                val latLng = LatLng(lat, long)
+                marker = googleMap.addMarker(
+                    MarkerOptions().position(latLng).title(getString(R.string.dropped_pin))
+                        .snippet(locationSnippet)
+                )
+                googleMap.moveCamera(
+                    CameraUpdateFactory.newLatLngZoom(latLng, 15.0f)
+                )
+            }
+        }
 
         with(googleMap) {
             this.setMapStyle(
@@ -187,17 +217,6 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
                     requireContext(),
                     R.raw.google_maps_style
                 )
-            )
-        }
-
-        if (lat != null && long != null && locationSnippet != null) {
-            val latLng = LatLng(lat, long)
-            marker = googleMap.addMarker(
-                MarkerOptions().position(latLng).title(getString(R.string.dropped_pin))
-                    .snippet(locationSnippet)
-            )
-            googleMap.moveCamera(
-                CameraUpdateFactory.newLatLngZoom(latLng, 15.0f)
             )
         }
     }
@@ -211,44 +230,28 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
         locationHelper.startLocationUpdates()
     }
 
-    override fun locationPermissionDenied() {
+    override fun getLastKnownLocation(location: Location?) {
+        _viewModel.locationAccepted.value = location
+    }
+
+
+    override fun showSnackBar() {
         Snackbar.make(
             binding.root,
-            getString(R.string.gps_request_message),
-            Snackbar.LENGTH_LONG
-        ).setAction(R.string.yes, View.OnClickListener {
-            activityResultLauncher.launch(PERMISSIONS)
-        }).show()
+            R.string.permission_denied_explanation,
+            Snackbar.LENGTH_INDEFINITE
+        )
+            .setAction(R.string.settings) {
+                requireActivity().startActivity(Intent().apply {
+                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                    data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                })
+            }.show()
     }
 
-    override fun onLocationChanged(location: Location?) {
-        location?.let {
-            googleMap.setPadding(0, 0, 0, 200)
-            googleMap.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(
-                    LatLng(it.latitude, it.longitude), 15.0f
-                )
-            )
-        }
-    }
 
     @SuppressLint("MissingPermission")
-    override fun getLastKnownLocation(location: Location?) {
-        location?.let {
-            googleMap.setPadding(0, 0, 0, 200)
-            googleMap.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(
-                    LatLng(it.latitude, it.longitude), 15.0f
-                )
-            )
-            googleMap.isMyLocationEnabled = true
-            googleMap.uiSettings.isZoomControlsEnabled = true
-            googleMap.uiSettings.isMyLocationButtonEnabled = true
-            googleMap.setOnMyLocationButtonClickListener(this)
-            googleMap.setOnMyLocationClickListener(this)
-        }
-    }
-
     override fun onMyLocationClick(p0: Location) {
         googleMap.setPadding(0, 0, 0, 200)
         googleMap.moveCamera(
@@ -256,15 +259,11 @@ class SelectLocationFragment : BaseFragment(), OnMapReadyCallback,
                 LatLng(p0.latitude, p0.longitude), 19.0f
             )
         )
-
-        addCircle(LatLng(p0.latitude, p0.longitude))
     }
 
     override fun onMyLocationButtonClick(): Boolean {
-        Toast.makeText(this.requireContext(), "MyLocation button clicked", Toast.LENGTH_SHORT)
-            .show()
+        locationHelper.checkDeviceLocationSettingsAndStartGeofence()
         return false
     }
-
 
 }
