@@ -184,125 +184,117 @@ class SaveReminderFragment : BaseFragment(), MLocationHelper {
             .addGeofence(geofence)
             .build()
 
-        geofenceClient.removeGeofences(geofencePendingIntent).run {
-            addOnCompleteListener {
-                geofenceClient.addGeofences(geofencingRequest, geofencePendingIntent).run {
-                    addOnSuccessListener {
-                        Log.d("Add_geofence", " geofence Added with reminder id $id successfully.")
-                    }
-                    addOnFailureListener {
-                        _viewModel.showSnackBarInt.postValue(R.string.error_adding_geofence)
-                    }
-                }
-            }
+        geofenceClient.addGeofences(geofencingRequest, geofencePendingIntent).run {
             addOnSuccessListener {
-                _viewModel.showSnackBarInt.postValue(R.string.geofences_removed)
+                Log.d("Add_geofence", " geofence Added with reminder id $id successfully.")
             }
             addOnFailureListener {
-                Log.d(TAG, getString(R.string.geofences_not_removed))
+                _viewModel.showSnackBarInt.postValue(R.string.error_adding_geofence)
             }
         }
     }
+}
+}
 
-    override fun onDestroy() {
-        super.onDestroy()
-        _viewModel.onClear()
-    }
+override fun onDestroy() {
+    super.onDestroy()
+    _viewModel.onClear()
+}
 
 
-    private fun initData() {
-        args.reminderData?.let {
-            reminderDataItem = it
-            _viewModel.apply {
-                reminderTitle.postValue(it.title)
-                reminderDescription.postValue(it.description)
-                reminderSelectedLocationStr.postValue(it.location)
-                latitude.postValue(it.latitude)
-                longitude.postValue(it.longitude)
-            }
+private fun initData() {
+    args.reminderData?.let {
+        reminderDataItem = it
+        _viewModel.apply {
+            reminderTitle.postValue(it.title)
+            reminderDescription.postValue(it.description)
+            reminderSelectedLocationStr.postValue(it.location)
+            latitude.postValue(it.latitude)
+            longitude.postValue(it.longitude)
         }
     }
+}
 
 
-    private var permissionsArray =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_BACKGROUND_LOCATION
-            )
-        } else arrayOf(
-            Manifest.permission.ACCESS_FINE_LOCATION
+private var permissionsArray =
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION
         )
+    } else arrayOf(
+        Manifest.permission.ACCESS_FINE_LOCATION
+    )
 
-    private var activityResultLauncher: ActivityResultLauncher<Array<String>> =
-        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            var allAreGranted = true
-            for (b in result.values) {
-                allAreGranted = allAreGranted && b
-            }
-            if (allAreGranted) {
-                checkDeviceLocationSettingsAndStartGeofence()
-            } else {
-                showSnackBar()
-            }
+private var activityResultLauncher: ActivityResultLauncher<Array<String>> =
+    registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
+        var allAreGranted = true
+        for (b in result.values) {
+            allAreGranted = allAreGranted && b
         }
-
-
-    private fun checkPermissionsAndStartGeofencing() {
-        if (locationHelper.foregroundAndBackgroundLocationPermissionApproved()) {
+        if (allAreGranted) {
             checkDeviceLocationSettingsAndStartGeofence()
         } else {
-            activityResultLauncher.launch(permissionsArray)
+            showSnackBar()
         }
     }
 
-    companion object {
-        private const val TAG = "SaveReminderFragment"
-    }
 
-    @SuppressLint("MissingPermission")
-    override fun getLastKnownLocation(location: Location?) {
+private fun checkPermissionsAndStartGeofencing() {
+    if (locationHelper.foregroundAndBackgroundLocationPermissionApproved()) {
+        checkDeviceLocationSettingsAndStartGeofence()
+    } else {
+        activityResultLauncher.launch(permissionsArray)
     }
+}
 
-    override fun showSnackBar() {
-        Snackbar.make(
-            binding.root,
-            R.string.location_required_error,
-            Snackbar.LENGTH_INDEFINITE
-        )
-            .setAction(R.string.settings) {
-                startActivity(Intent().apply {
-                    action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                    data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                })
-            }.show()
-    }
+companion object {
+    private const val TAG = "SaveReminderFragment"
+}
 
-    override fun startLocationRequest() {
-        if (locationHelper.isLocationEnabled())
-            if (_viewModel.validateEnteredData(reminderDataItem)) {
-                _viewModel.validateAndSaveReminder(reminderDataItem)
-                listenToReminderGeofence(
-                    reminderDataItem.latitude!!,
-                    reminderDataItem.longitude!!,
-                    reminderDataItem.id
-                )
-            } else {
-                checkDeviceLocationSettingsAndStartGeofence()
-            }
-    }
+@SuppressLint("MissingPermission")
+override fun getLastKnownLocation(location: Location?) {
+}
 
-    override fun onResume() {
-        super.onResume()
-        if (this@SaveReminderFragment.context == null) {
-            recreateFragment()
+override fun showSnackBar() {
+    Snackbar.make(
+        binding.root,
+        R.string.location_required_error,
+        Snackbar.LENGTH_INDEFINITE
+    )
+        .setAction(R.string.settings) {
+            startActivity(Intent().apply {
+                action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                data = Uri.fromParts("package", BuildConfig.APPLICATION_ID, null)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            })
+        }.show()
+}
+
+override fun startLocationRequest() {
+    if (locationHelper.isLocationEnabled())
+        if (_viewModel.validateEnteredData(reminderDataItem)) {
+            _viewModel.validateAndSaveReminder(reminderDataItem)
+            listenToReminderGeofence(
+                reminderDataItem.latitude!!,
+                reminderDataItem.longitude!!,
+                reminderDataItem.id
+            )
+        } else {
+            checkDeviceLocationSettingsAndStartGeofence()
         }
-    }
+}
 
-    private fun recreateFragment() {
-        parentFragmentManager.beginTransaction().detach(this).attach(this).commit()
+override fun onResume() {
+    super.onResume()
+    if (this@SaveReminderFragment.context == null) {
+        recreateFragment()
     }
+}
+
+private fun recreateFragment() {
+    parentFragmentManager.beginTransaction().detach(this).attach(this).commit()
+}
 }
 
